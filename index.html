@@ -176,32 +176,86 @@
   /* ── Polaroid photos ── */
   .polaroid {
     position: fixed;
-    width: clamp(100px, 16vw, 170px);
+    width: clamp(90px, 14vw, 155px);
     background: #fff;
-    padding: clamp(7px, 1.2vw, 12px);
-    padding-bottom: clamp(26px, 4.5vw, 40px);
+    padding: clamp(6px, 1vw, 10px);
+    padding-bottom: clamp(22px, 3.8vw, 36px);
     border-radius: 3px;
     box-shadow: 0 6px 24px rgba(120,70,90,0.18), 0 2px 6px rgba(120,70,90,0.1);
     opacity: 0;
     pointer-events: none;
     z-index: 25;
     will-change: transform, opacity, left, top;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
   }
   .polaroid img {
     width: 100%; aspect-ratio: 1;
     object-fit: cover;
     border-radius: 2px;
     display: block;
+    pointer-events: none;
   }
   .polaroid .caption {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: clamp(26px, 4.5vw, 40px);
+    height: clamp(22px, 3.8vw, 36px);
     display: flex; align-items: center; justify-content: center;
     font-family: 'Courier New', monospace;
-    font-size: clamp(8px, 1.1vw, 11px);
+    font-size: clamp(7px, 1vw, 10px);
     color: #b07080;
     letter-spacing: 0.05em;
+    pointer-events: none;
+  }
+
+  /* ── Lightbox overlay ── */
+  #lightbox {
+    position: fixed; inset: 0;
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(30, 10, 18, 0);
+    pointer-events: none;
+    transition: background 0.35s ease;
+    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px);
+  }
+  #lightbox.open {
+    background: rgba(30, 10, 18, 0.72);
+    pointer-events: auto;
+  }
+  #lightbox-card {
+    background: #fff;
+    padding: clamp(10px, 2.5vw, 18px);
+    padding-bottom: clamp(38px, 7vw, 60px);
+    border-radius: 4px;
+    box-shadow: 0 24px 80px rgba(80,20,40,0.45);
+    max-width: min(82vw, 420px);
+    width: 100%;
+    transform: scale(0.6) translateY(30px);
+    opacity: 0;
+    transition: transform 0.38s cubic-bezier(0.34,1.45,0.64,1), opacity 0.32s ease;
+    position: relative;
+  }
+  #lightbox.open #lightbox-card {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  #lightbox-card img {
+    width: 100%; aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 3px;
+    display: block;
+  }
+  #lightbox-caption {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: clamp(38px, 7vw, 60px);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(10px, 1.6vw, 14px);
+    color: #b07080;
+    letter-spacing: 0.06em;
   }
 
   /* ── Confetti canvas ── */
@@ -291,6 +345,13 @@
   <!-- ✏️ CHANGE NAME HERE ↓ -->
   <h1 class="bday-title" id="bday-title">Happy Birthday,<br>Pranjal Brinjal!</h1>
   <p class="bday-sub" id="bday-sub">You are now officially an aunty! But a very very veryyyy pretty one</p>
+</div>
+
+<div id="lightbox">
+  <div id="lightbox-card">
+    <img id="lightbox-img" src="" alt="">
+    <div id="lightbox-caption"></div>
+  </div>
 </div>
 
 <canvas id="confetti-canvas"></canvas>
@@ -735,124 +796,167 @@ function spawnSparkleWave(cx, cy, count, delay) {
 }
 
 /* ============================================================
-   PHOTO POLAROIDS — fixed stay-on-screen placement
+   LIGHTBOX — tap to expand, tap again to close
+============================================================ */
+(function initLightbox() {
+  const lb      = document.getElementById('lightbox');
+  const lbImg   = document.getElementById('lightbox-img');
+  const lbCap   = document.getElementById('lightbox-caption');
+
+  window.openLightbox = function(src, caption) {
+    lbImg.src         = src;
+    lbCap.textContent = caption || '';
+    lb.classList.add('open');
+  };
+
+  function close() { lb.classList.remove('open'); }
+  lb.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+
+/* ============================================================
+   PHOTO POLAROIDS — scattered but non-overlapping placement
 ============================================================ */
 function launchPhotos(originX, originY) {
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const PAD = 12;
-  const GAP = 14; // breathing room between polaroids
-  const ROT_BUF = 14; // extra margin so rotated corners never poke past screen edges
+  const W   = window.innerWidth;
+  const H   = window.innerHeight;
+  const PAD = 10;
 
-  /* Pre-compute the polaroid pixel size from CSS clamp */
-  const testEl = document.createElement('div');
-  testEl.className = 'polaroid';
-  testEl.style.visibility = 'hidden';
-  document.body.appendChild(testEl);
-  const POL_W = testEl.offsetWidth  || 140;
-  const POL_H = testEl.offsetHeight || 182;
-  document.body.removeChild(testEl);
+  /* Measure real polaroid size */
+  const probe = document.createElement('div');
+  probe.className = 'polaroid';
+  probe.style.visibility = 'hidden';
+  probe.style.opacity    = '0';
+  document.body.appendChild(probe);
+  const PW = probe.offsetWidth  || 120;
+  const PH = probe.offsetHeight || 156;
+  document.body.removeChild(probe);
 
-  /* Tile the whole screen into a grid of non-overlapping cells, rather
-     than randomly placing photos and rejecting collisions. This makes
-     overlap structurally impossible. The birthday text now has its own
-     glow, so photos are free to land underneath it — no exclusion zone
-     needed, which means every photo always gets a guaranteed, clean,
-     non-overlapping spot. */
-  function regionSlots(x0, y0, w, h) {
-    const cellW = POL_W + GAP, cellH = POL_H + GAP;
-    const cols = Math.floor((w + GAP) / cellW);
-    const rows = Math.floor((h + GAP) / cellH);
+  /* ── Build a scattered but guaranteed non-overlapping grid ──
+     Strategy: divide the canvas into a soft grid of zones, then
+     place one polaroid per zone with random jitter inside it.
+     This guarantees coverage across the whole screen AND prevents
+     overlap, while looking far more organic than a rigid 4×4 grid.
+
+     We target exactly 16 photos for the 16 images.
+     We'll try layouts from most cells to least until we find one
+     that fits all 16 without polaroids going off-screen.        */
+
+  const PHOTOS = Math.min(photoSrcs.length, 16);
+
+  function buildZoneSlots(cols, rows) {
+    const zW = (W - PAD * 2) / cols;
+    const zH = (H - PAD * 2) / rows;
+    /* Max jitter so polaroid stays inside its zone */
+    const jX = Math.max(0, (zW - PW) * 0.42);
+    const jY = Math.max(0, (zH - PH) * 0.42);
     const slots = [];
-    if (cols < 1 || rows < 1) return slots;
-    const usedW = cols * POL_W + (cols - 1) * GAP;
-    const usedH = rows * POL_H + (rows - 1) * GAP;
-    const slackX = w - usedW;
-    const slackY = h - usedH;
-    const jitter = Math.min(GAP * 0.5, 8);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const baseX = x0 + slackX / 2 + c * cellW + (Math.random() - 0.5) * jitter;
-        const baseY = y0 + slackY / 2 + r * cellH + (Math.random() - 0.5) * jitter;
-        slots.push({ x: baseX, y: baseY });
+        /* Centre of zone */
+        const cx = PAD + zW * c + zW / 2 - PW / 2;
+        const cy = PAD + zH * r + zH / 2 - PH / 2;
+        const x  = cx + (Math.random() - 0.5) * 2 * jX;
+        const y  = cy + (Math.random() - 0.5) * 2 * jY;
+        /* Clamp to screen */
+        slots.push({
+          x: Math.max(PAD, Math.min(W - PW - PAD, x)),
+          y: Math.max(PAD, Math.min(H - PH - PAD, y)),
+        });
       }
     }
     return slots;
   }
 
-  let slots = regionSlots(PAD, PAD + ROT_BUF, W - PAD * 2, H - PAD * 2 - ROT_BUF * 2);
+  /* Find the layout that gives us exactly PHOTOS slots and fits well */
+  const layouts = [
+    [4,4],[4,3],[3,4],[5,3],[3,5],[4,2],[2,4],[3,3],
+  ];
+  let slots = [];
+  for (const [cols, rows] of layouts) {
+    if (cols * rows >= PHOTOS) {
+      slots = buildZoneSlots(cols, rows);
+      break;
+    }
+  }
+  if (!slots.length) slots = buildZoneSlots(4, 4);
 
-  /* Shuffle so which photo lands in which slot feels random */
+  /* Shuffle zone order so which zone each photo lands in is random */
   for (let i = slots.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
   }
 
-  /* Only show as many photos as we have guaranteed non-overlapping
-     slots for — better a curated handful laid out cleanly than all
-     of them crammed in and overlapping. */
-  const activeSrcs = photoSrcs.slice(0, slots.length);
-  const activeCaptions = photoCaptions.slice(0, activeSrcs.length);
+  /* Trim to actual photo count */
+  slots = slots.slice(0, PHOTOS);
 
-  activeSrcs.forEach((src, idx) => {
-    const el = document.createElement('div');
+  /* ── Spawn polaroids ── */
+  slots.forEach((slot, idx) => {
+    const src     = photoSrcs[idx];
+    const caption = photoCaptions[idx] || '';
+
+    const el  = document.createElement('div');
     el.className = 'polaroid';
 
     const img = document.createElement('img');
-    img.src = src;
-    img.alt = activeCaptions[idx] || 'memory';
+    img.src   = src;
+    img.alt   = caption || 'memory';
     img.onerror = () => el.remove();
 
     const cap = document.createElement('div');
-    cap.className = 'caption';
-    cap.textContent = activeCaptions[idx] || '';
+    cap.className   = 'caption';
+    cap.textContent = caption;
 
     el.appendChild(img);
     el.appendChild(cap);
     document.body.appendChild(el);
 
-    const slot   = slots[idx];
-    const rotate = (Math.random() - 0.5) * 20;
-    const delay  = 160 + idx * 60 + Math.random() * 120;
+    const rotate = (Math.random() - 0.5) * 22;
+    const delay  = 160 + idx * 55 + Math.random() * 100;
+    const dur    = 750 + Math.random() * 350;
 
-    /* Place at origin (button center) to start */
-    el.style.left      = (originX - POL_W / 2) + 'px';
-    el.style.top       = (originY - POL_H / 2) + 'px';
+    /* Start at origin */
+    el.style.left      = (originX - PW / 2) + 'px';
+    el.style.top       = (originY - PH / 2) + 'px';
     el.style.opacity   = '0';
-    el.style.transform = 'scale(0.3) rotate(0deg)';
+    el.style.transform = 'scale(0.28) rotate(0deg)';
     el.style.transition = 'none';
 
     setTimeout(() => {
-      /* Animate using CSS transition — from origin to final slot */
-      const dur = 780 + Math.random() * 380;
-
-      /* Step 1: fly toward slot with slight overshoot arc */
-      el.style.transition = `left ${dur}ms cubic-bezier(0.22,1,0.36,1),
-                              top  ${dur}ms cubic-bezier(0.22,1,0.36,1),
-                              transform ${dur}ms cubic-bezier(0.22,1,0.36,1),
-                              opacity ${dur * 0.4}ms ease`;
+      el.style.transition =
+        `left ${dur}ms cubic-bezier(0.22,1,0.36,1),
+         top  ${dur}ms cubic-bezier(0.22,1,0.36,1),
+         transform ${dur}ms cubic-bezier(0.22,1,0.36,1),
+         opacity ${dur * 0.4}ms ease`;
       el.style.opacity   = '1';
       el.style.left      = slot.x + 'px';
       el.style.top       = slot.y + 'px';
       el.style.transform = `scale(1) rotate(${rotate}deg)`;
 
-      /* Step 2: after landing, enable hover interactions */
+      /* After landing: enable interactions */
       setTimeout(() => {
-        el.style.transition = 'box-shadow 0.3s ease, transform 0.3s ease';
         el.style.pointerEvents = 'auto';
-        el.style.cursor = 'default';
 
+        /* Desktop hover lift */
         el.addEventListener('mouseenter', () => {
-          el.style.boxShadow = '0 16px 44px rgba(120,70,90,0.30)';
-          el.style.transform = `scale(1.07) rotate(${rotate * 0.3}deg)`;
-          el.style.zIndex    = '50';
+          el.style.transition = 'box-shadow 0.25s ease, transform 0.25s ease';
+          el.style.boxShadow  = '0 18px 48px rgba(120,70,90,0.32)';
+          el.style.transform  = `scale(1.09) rotate(${rotate * 0.3}deg)`;
+          el.style.zIndex     = '60';
         });
         el.addEventListener('mouseleave', () => {
-          el.style.boxShadow = '';
-          el.style.transform = `scale(1) rotate(${rotate}deg)`;
-          el.style.zIndex    = '25';
+          el.style.transition = 'box-shadow 0.25s ease, transform 0.25s ease';
+          el.style.boxShadow  = '';
+          el.style.transform  = `scale(1) rotate(${rotate}deg)`;
+          el.style.zIndex     = '25';
         });
-      }, dur + 60);
+
+        /* Tap / click → lightbox */
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.openLightbox(src, caption);
+        });
+      }, dur + 80);
     }, delay);
   });
 }
