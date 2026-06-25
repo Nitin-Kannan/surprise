@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#FDF6EE">
+<title>Happy Birthday 🎀</title>
+<style>
+  :root {
+    --cream:   #FDF6EE;
+    --blush:   #F2B8C6;
+    --peach:   #F9C9A8;
+    --lavender:#D8C4E8;
+    --rose:    #E8899A;
+    --font-display: 'Georgia', 'Times New Roman', serif;
+    --font-body:    'Helvetica Neue', Arial, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    background: var(--cream);
+    font-family: var(--font-body);
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  /* ── Petal + tulip canvas (background) ── */
+  #petal-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Initial screen ── */
+  #intro {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 10;
+    transition: opacity 0.9s ease, transform 0.9s ease;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #intro.hidden {
+    opacity: 0; transform: scale(1.04);
+    pointer-events: none;
+  }
+
+  .intro-tagline {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    color: #b07080;
+    letter-spacing: 0.12em;
+    margin-bottom: 2.4rem;
+    opacity: 0.75;
+    font-style: italic;
+  }
+
+  #click-btn {
+    position: relative;
+    padding: 1.1rem 2.8rem;
+    min-height: 48px;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    font-family: var(--font-display);
+    font-style: italic;
+    letter-spacing: 0.04em;
+    color: #6b3a4a;
+    background: linear-gradient(135deg, var(--blush) 0%, var(--peach) 100%);
+    border: none;
+    border-radius: 60px;
+    cursor: pointer;
+    box-shadow: 0 6px 28px rgba(220,130,150,0.38), 0 2px 6px rgba(220,130,150,0.2);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    z-index: 1;
+  }
+  #click-btn::before {
+    content: '';
+    position: absolute; inset: -3px;
+    border-radius: 63px;
+    background: linear-gradient(135deg, var(--lavender), var(--blush), var(--peach));
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  #click-btn:hover { transform: scale(1.06); box-shadow: 0 10px 36px rgba(220,130,150,0.45); }
+  #click-btn:hover::before { opacity: 1; }
+  #click-btn:active { transform: scale(0.97); }
+
+  @keyframes btnPulse {
+    0%, 100% { box-shadow: 0 6px 28px rgba(220,130,150,0.38), 0 2px 6px rgba(220,130,150,0.2), 0 0 0 0 rgba(232,137,154,0.45); }
+    50%      { box-shadow: 0 6px 28px rgba(220,130,150,0.38), 0 2px 6px rgba(220,130,150,0.2), 0 0 0 14px rgba(232,137,154,0); }
+  }
+  #click-btn { animation: btnPulse 2.6s ease-out infinite; }
+  #click-btn:hover { animation: none; }
+
+  @keyframes taglineFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  .intro-tagline { animation: taglineFloat 3.4s ease-in-out infinite; }
+
+  /* ── Celebration layer ── */
+  #celebration {
+    position: fixed; inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* ── Birthday message ── */
+  #birthday-msg {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 30;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #birthday-msg.visible { opacity: 1; }
+
+  .bday-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 7vw, 5rem);
+    color: #7a3a50;
+    text-align: center;
+    line-height: 1.2;
+    text-shadow:
+      0 0 6px rgba(255,255,255,0.9),
+      0 0 14px rgba(255,255,255,0.85),
+      0 0 26px rgba(255,250,248,0.75),
+      0 0 44px rgba(249,201,168,0.55),
+      0 2px 16px rgba(230,160,170,0.5);
+    transform: scale(0.5);
+    opacity: 0;
+    transition: transform 0.7s cubic-bezier(0.34,1.56,0.64,1), opacity 0.5s ease;
+    padding: 0 1rem;
+  }
+  .bday-title.pop { transform: scale(1); opacity: 1; }
+
+  .bday-sub {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+    color: #b07080;
+    font-style: italic;
+    letter-spacing: 0.06em;
+    margin-top: 0.8rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.6s ease 0.4s, transform 0.6s ease 0.4s;
+    text-align: center;
+    padding: 0 1rem;
+    text-shadow:
+      0 0 5px rgba(255,255,255,0.9),
+      0 0 12px rgba(255,255,255,0.85),
+      0 0 22px rgba(255,250,248,0.7),
+      0 0 36px rgba(249,201,168,0.5);
+  }
+  .bday-sub.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── Polaroid photos ── */
+  .polaroid {
+    position: fixed;
+    width: clamp(100px, 16vw, 170px);
+    background: #fff;
+    padding: clamp(7px, 1.2vw, 12px);
+    padding-bottom: clamp(26px, 4.5vw, 40px);
+    border-radius: 3px;
+    box-shadow: 0 6px 24px rgba(120,70,90,0.18), 0 2px 6px rgba(120,70,90,0.1);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+    will-change: transform, opacity, left, top;
+  }
+  .polaroid img {
+    width: 100%; aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 2px;
+    display: block;
+  }
+  .polaroid .caption {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: clamp(26px, 4.5vw, 40px);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(8px, 1.1vw, 11px);
+    color: #b07080;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Confetti canvas ── */
+  #confetti-canvas {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 40;
+  }
+
+  /* ── Sparkle star ── */
+  .sparkle-star {
+    position: fixed;
+    pointer-events: none;
+    z-index: 45;
+    opacity: 0;
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* ── Balloons ── */
+  .balloon {
+    position: fixed;
+    bottom: -160px;
+    width: 54px;
+    height: 68px;
+    border-radius: 50% 50% 50% 50% / 55% 55% 45% 45%;
+    z-index: 22;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow: inset -8px -10px 18px rgba(255,255,255,0.35), inset 6px 8px 16px rgba(0,0,0,0.08);
+  }
+  .balloon::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 100%;
+    width: 1px; height: 90px;
+    background: rgba(120,90,100,0.35);
+    transform: translateX(-50%);
+  }
+  .balloon::before {
+    content: '';
+    position: absolute;
+    left: 50%; bottom: -7px;
+    width: 8px; height: 8px;
+    background: inherit;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+    transform: translateX(-50%);
+  }
+
+  /* ── Glow halo behind title ── */
+  .glow-halo {
+    position: absolute;
+    width: clamp(280px, 60vw, 560px);
+    height: clamp(280px, 60vw, 560px);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(249,201,168,0.55) 0%, rgba(242,184,198,0.28) 45%, rgba(242,184,198,0) 75%);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 1s ease;
+    animation: haloPulse 4s ease-in-out infinite;
+  }
+  .glow-halo.visible { opacity: 1; }
+  @keyframes haloPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .polaroid, .bday-title, .bday-sub { transition: none !important; }
+    #click-btn, .intro-tagline, .glow-halo { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="petal-canvas"></canvas>
+
+<div id="intro">
+  <button id="click-btn" onclick="triggerCelebration()">Click Me</button>
+</div>
+
+<div id="celebration"></div>
+
+<div id="birthday-msg">
+  <div class="glow-halo" id="glow-halo"></div>
+  <!-- ✏️ CHANGE NAME HERE ↓ -->
+  <h1 class="bday-title" id="bday-title">Happy Birthday,<br>Pranjal Brinjal!</h1>
+  <p class="bday-sub" id="bday-sub">You are now officially an aunty! But a very very veryyyy pretty one</p>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+
+<script>
+/* ============================================================
+   ✏️ CUSTOMISE: replace with your actual image paths.
+   Supports .jpg .jpeg .png .webp — just match the filename.
+============================================================ */
+const photoSrcs = [
+  "images/1.jpg",
+  "images/2.jpg",
+  "images/3.jpg",
+  "images/4.jpg",
+  "images/5.jpg",
+  "images/6.jpg",
+  "images/7.jpg",
+  "images/8.jpg",
+  "images/9.jpg",
+  "images/10.jpg",
+  "images/11.jpg",
+  "images/12.jpg",
+  "images/13.jpg",
+  "images/14.jpg",
+  "images/15.jpg",
+  "images/16.jpg",
+  "images/17.jpg",
+  "images/18.jpg",
+  "images/19.jpg",
+  "images/20.jpg",
+];
+
+/* Optional captions — leave '' for blank */
+const photoCaptions = [
+  "","","","","","","","","","",
+  "","","","","","","","","","",
+];
+
+/* ============================================================
+   PETAL + TULIP BACKGROUND
+   — Large, smooth cherry-blossom petals drifting down
+   — A bed of lavender tulips swaying along the bottom
+============================================================ */
+(function initBackground() {
+  const canvas = document.getElementById('petal-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H;
+  let tulips = []; // declared here so buildTulips() (called inside resize) can access it
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ── PETALS ─────────────────────────────────────────────── */
+  const petalColors = [
+    '#F9D0DC','#F7BDC9','#FADADD','#F2B8C6',
+    '#fce4ec','#f8c8d4','#edd5e8','#E8D4F0',
+    '#f9e0cb','#F9C9A8',
+  ];
+
+  /* Draw one rounded teardrop petal */
+  function drawPetal(x, y, size, rotation, alpha, color) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    // Outer shape
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.bezierCurveTo( size * 0.72, -size * 0.45,  size * 0.72,  size * 0.55, 0,  size * 0.85);
+    ctx.bezierCurveTo(-size * 0.72,  size * 0.55, -size * 0.72, -size * 0.45, 0, -size);
+    ctx.closePath();
+    // Soft gradient fill
+    const grd = ctx.createLinearGradient(0, -size, 0, size * 0.85);
+    grd.addColorStop(0,   color);
+    grd.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle = grd;
+    ctx.fill();
+    // Central vein
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 0.8);
+    ctx.lineTo(0,  size * 0.65);
+    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+    ctx.lineWidth   = size * 0.10;
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  const PETAL_COUNT = window.innerWidth < 600 ? 14 : 22;
+  const petals = [];
+
+  function makePetal(fromTop) {
+    return {
+      x:        Math.random() * W,
+      y:        fromTop ? -(20 + Math.random() * 120) : Math.random() * H,
+      size:     11 + Math.random() * 11,          // smaller: 11–22px
+      rot:      Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.008,    // very slow rotation
+      vy:       0.38 + Math.random() * 0.52,       // slow, dreamlike fall
+      baseVx:   (Math.random() - 0.5) * 0.3,
+      swayAmp:  55 + Math.random() * 45,           // wide, lazy sway arc (px)
+      swayPeriod: 5000 + Math.random() * 4000,     // slow period (ms)
+      swayOff:  Math.random() * Math.PI * 2,
+      alpha:    0.55 + Math.random() * 0.35,
+      color:    petalColors[Math.floor(Math.random() * petalColors.length)],
+      t:        Math.random() * 10000,             // time offset
+    };
+  }
+
+  for (let i = 0; i < PETAL_COUNT; i++) petals.push(makePetal(false));
+
+  /* ── TULIPS (disabled) ──────────────────────────────────── */
+  function buildTulips() {
+    tulips = [];
+    const spacing = 42;
+    const count   = Math.ceil(W / spacing) + 3;
+    for (let i = 0; i < count; i++) {
+      const x       = -spacing + i * spacing + (Math.random() - 0.5) * 16;
+      const stemH   = H * (0.055 + Math.random() * 0.04);
+      const layer   = Math.random();
+      // Scale: front tulips bigger, back ones smaller
+      const scale   = 0.6 + layer * 0.7;
+      const hue     = 258 + Math.floor(Math.random() * 44); // lavender–violet
+      tulips.push({
+        x,
+        baseY:      H + 4,
+        stemH,
+        layer,
+        scale,
+        swayAmp:    2.2 + Math.random() * 2.2,
+        swayPeriod: 3400 + Math.random() * 2600,
+        swayOff:    Math.random() * Math.PI * 2,
+        headLight:  `hsl(${hue},58%,82%)`,   // light lavender
+        headMid:    `hsl(${hue},50%,70%)`,   // mid shade
+        headDark:   `hsl(${hue},45%,58%)`,   // shadow
+        stemColor:  `hsl(122,38%,34%)`,      // deep green stem
+        leafColor:  `hsl(118,36%,30%)`,      // dark olive leaf
+        leafLight:  `hsl(120,32%,42%)`,      // leaf highlight
+      });
+    }
+    tulips.sort((a, b) => a.layer - b.layer);
+  }
+
+  /*
+   * drawTulip — origami/paper style:
+   * wide trapezoidal base tapering up into 5 pointed petal tips,
+   * with flat geometric facets and hard light/shadow planes.
+   */
+  function drawTulip(t, ts) {
+    const sway = Math.sin(ts / t.swayPeriod * Math.PI * 2 + t.swayOff) * t.swayAmp;
+    const rad  = sway * Math.PI / 180;
+    const s    = t.scale;
+
+    ctx.save();
+    ctx.translate(t.x, t.baseY);
+
+    // ── Stem ──────────────────────────────────────────────────
+    const stemTipX = Math.sin(rad) * t.stemH * 0.38;
+    const stemTipY = -t.stemH;
+    const stemCtlX = Math.sin(rad) * t.stemH * 0.18;
+    const stemCtlY = -t.stemH * 0.5;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(stemCtlX, stemCtlY, stemTipX, stemTipY);
+    ctx.strokeStyle = t.stemColor;
+    ctx.lineWidth   = Math.max(2, 3.5 * s);
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+
+    // ── Leaves ────────────────────────────────────────────────
+    const leafX = stemCtlX * 0.8;
+    const leafY = -t.stemH * 0.44;
+    const lw = 14 * s, lh = 8 * s;
+
+    ctx.save();
+    ctx.translate(leafX, leafY);
+    ctx.rotate(rad + 0.42);
+    ctx.beginPath();
+    ctx.ellipse(lw * 0.55, 0, lw, lh * 0.72, 0, 0, Math.PI * 2);
+    ctx.fillStyle = t.leafColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(lw * 0.55, -lh * 0.22, lw * 1.1, 0);
+    ctx.strokeStyle = t.leafLight;
+    ctx.lineWidth = Math.max(0.8, 1.2 * s);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(leafX, leafY);
+    ctx.rotate(rad - 0.42);
+    ctx.beginPath();
+    ctx.ellipse(-lw * 0.55, 0, lw, lh * 0.72, 0, 0, Math.PI * 2);
+    ctx.fillStyle = t.leafColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(-lw * 0.55, -lh * 0.22, -lw * 1.1, 0);
+    ctx.strokeStyle = t.leafLight;
+    ctx.lineWidth = Math.max(0.8, 1.2 * s);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Origami tulip head ────────────────────────────────────
+    // Coordinate system: hx/hy = stem tip (bottom-centre of head)
+    const hx = stemTipX;
+    const hy = stemTipY;
+
+    // Dimensions — wider than tall, paper-tulip proportions
+    const W2  = 16 * s;   // half-width at base
+    const H2  = 20 * s;   // total height
+    const mid = hy - H2;  // y of petal tips
+
+    // Key structural points (all relative to ctx origin = t.x, t.baseY)
+    // Base corners
+    const bL  = { x: hx - W2,       y: hy };           // base-left
+    const bR  = { x: hx + W2,       y: hy };           // base-right
+    // Waist — slight pinch at ~40% height gives that tapered silhouette
+    const wL  = { x: hx - W2 * 0.7, y: hy - H2 * 0.42 };
+    const wR  = { x: hx + W2 * 0.7, y: hy - H2 * 0.42 };
+    // Centre spine point at top
+    const top  = { x: hx,            y: mid };
+    // Five petal tips fanning across the top edge
+    const p0  = { x: hx - W2 * 0.95, y: mid + H2 * 0.08 }; // far-left outer
+    const p1  = { x: hx - W2 * 0.42, y: mid - H2 * 0.04 }; // left-inner
+    const p2  = { x: hx,             y: mid };               // centre peak
+    const p3  = { x: hx + W2 * 0.42, y: mid - H2 * 0.04 }; // right-inner
+    const p4  = { x: hx + W2 * 0.95, y: mid + H2 * 0.08 }; // far-right outer
+    // Mid-height helper points for facet fold lines
+    const mL  = { x: hx - W2 * 0.55, y: hy - H2 * 0.62 };
+    const mR  = { x: hx + W2 * 0.55, y: hy - H2 * 0.62 };
+    const mC  = { x: hx,             y: hy - H2 * 0.58 };
+
+    // Colour palette — 4 shades for origami depth illusion
+    const dark   = t.headDark;
+    const mid2   = t.headMid;
+    const light  = t.headLight;
+    const xlight = t.headLight.replace('hsl(', 'hsla(').replace(')', ',0.85)');
+
+    function poly(...pts) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.closePath();
+    }
+
+    // ── Layer 1: outer background silhouette fill (darkest) ──
+    poly(bL, bR, p4, p3, p2, p1, p0);
+    ctx.fillStyle = dark;
+    ctx.fill();
+
+    // ── Layer 2: main centre-left facet (mid tone) ──
+    poly(bL, { x: hx, y: hy }, mC, p1, p0);
+    ctx.fillStyle = mid2;
+    ctx.fill();
+
+    // ── Layer 3: centre bright face ──
+    poly({ x: hx, y: hy }, bR, mR, p2, mC);
+    ctx.fillStyle = light;
+    ctx.fill();
+
+    // ── Layer 4: far-left recessed petal ──
+    poly(bL, wL, mL, p0);
+    ctx.fillStyle = dark;
+    ctx.fill();
+
+    // ── Layer 5: left-centre raised facet ──
+    poly(wL, mC, p1, mL);
+    ctx.fillStyle = mid2;
+    ctx.fill();
+
+    // ── Layer 6: right-centre raised facet (lightest) ──
+    poly({ x: hx, y: hy - H2 * 0.1 }, mR, p3, p2, mC);
+    ctx.fillStyle = xlight;
+    ctx.fill();
+
+    // ── Layer 7: far-right recessed petal ──
+    poly(bR, wR, p4, mR);
+    ctx.fillStyle = mid2;
+    ctx.fill();
+
+    // ── Layer 8: right outer shadow strip ──
+    poly(wR, mR, p4);
+    ctx.fillStyle = dark;
+    ctx.fill();
+
+    // ── Fold lines — crisp paper crease edges ──
+    ctx.lineWidth = 0.7 * s;
+    ctx.lineCap   = 'round';
+
+    function crease(a, b, alpha) {
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = dark;
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    crease({ x: hx, y: hy }, mC,  0.9);   // centre spine
+    crease(mC, p2,                 0.9);   // centre spine upper
+    crease(wL, mL,                 0.7);   // left fold
+    crease(mL, p0,                 0.7);
+    crease(wR, mR,                 0.7);   // right fold
+    crease(mR, p4,                 0.7);
+    crease(mC, p1,                 0.6);   // inner-left crease
+    crease(mC, p3,                 0.6);   // inner-right crease
+
+    ctx.restore();
+  }
+
+  /* ── ANIMATION LOOP ─────────────────────────────────────── */
+  function loop(ts) {
+    ctx.clearRect(0, 0, W, H);
+
+    // Falling petals
+    petals.forEach(p => {
+      p.t += 16;
+      // Position: pure sine sway, no per-frame vx noise
+      const swayX = Math.sin(p.t / p.swayPeriod * Math.PI * 2 + p.swayOff) * p.swayAmp;
+      p.y += p.vy;
+      p.rot += p.rotSpeed;
+
+      const drawX = p.x + swayX;
+      const edgeFade = Math.min(drawX / 80, (W - drawX) / 80, 1);
+      drawPetal(drawX, p.y, p.size, p.rot, p.alpha * Math.max(0, edgeFade), p.color);
+
+      if (p.y - p.size > H) {
+        Object.assign(p, makePetal(true));
+        p.x = Math.random() * W;
+      }
+    });
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+
+/* ============================================================
+   CONFETTI
+============================================================ */
+(function initConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx    = canvas.getContext('2d');
+  const colors = ['#F2B8C6','#F9C9A8','#D8C4E8','#fde8d8','#f7d4df','#e8d0f0','#ffd6e0'];
+  let W, H, pieces = [], active = false;
+
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+
+  function makePiece(bx, by) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 5 + Math.random() * 10;
+    return {
+      x: bx, y: by,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 7,
+      gravity: 0.22 + Math.random() * 0.12,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.16,
+      w: 7 + Math.random() * 9,
+      h: 4 + Math.random() * 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1,
+    };
+  }
+
+  window.launchConfetti = function(bx, by) {
+    active = true;
+    const isMobile = window.innerWidth < 600;
+    const burst = isMobile ? 130 : 220;
+    const second = isMobile ? 70 : 120;
+    for (let i = 0; i < burst; i++) pieces.push(makePiece(bx, by));
+    setTimeout(() => { for (let i = 0; i < second; i++) pieces.push(makePiece(W/2, H/2)); }, 500);
+  };
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+    if (active) {
+      pieces.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+        p.x += p.vx; p.y += p.vy; p.vy += p.gravity;
+        p.vx *= 0.995; p.rot += p.rotSpeed;
+        if (p.y > H + 20) p.alpha -= 0.04;
+      });
+      pieces = pieces.filter(p => p.alpha > 0);
+      if (pieces.length === 0) active = false;
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ============================================================
+   SPARKLES
+============================================================ */
+function spawnSparkle(x, y) {
+  const el = document.createElement('div');
+  el.className = 'sparkle-star';
+  const glyphs = ['✦','✧','⋆','·','✿','❀'];
+  el.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+  const colors = ['#F2B8C6','#e8a0b8','#D8C4E8','#c8a8e0','#F9C9A8'];
+  el.style.color = colors[Math.floor(Math.random() * colors.length)];
+  el.style.left  = x + 'px';
+  el.style.top   = y + 'px';
+  el.style.fontSize = (10 + Math.random() * 14) + 'px';
+  document.getElementById('celebration').appendChild(el);
+  const dx = (Math.random() - 0.5) * 180;
+  const dy = (Math.random() - 0.5) * 180;
+  el.animate([
+    { opacity: 0, transform: 'translate(0,0) scale(0.2) rotate(0deg)' },
+    { opacity: 1, transform: `translate(${dx*0.5}px,${dy*0.5}px) scale(1.2) rotate(${Math.random()*180}deg)`, offset: 0.35 },
+    { opacity: 0, transform: `translate(${dx}px,${dy}px) scale(0.4) rotate(${Math.random()*360}deg)` }
+  ], { duration: 900 + Math.random() * 600, easing: 'ease-out' }).onfinish = () => el.remove();
+}
+
+function spawnSparkleWave(cx, cy, count, delay) {
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => spawnSparkle(cx + (Math.random()-0.5)*140, cy + (Math.random()-0.5)*140), delay + i*30);
+  }
+}
+
+/* ============================================================
+   PHOTO POLAROIDS — fixed stay-on-screen placement
+============================================================ */
+function launchPhotos(originX, originY) {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const PAD = 12;
+  const GAP = 14; // breathing room between polaroids
+  const ROT_BUF = 14; // extra margin so rotated corners never poke past screen edges
+
+  /* Pre-compute the polaroid pixel size from CSS clamp */
+  const testEl = document.createElement('div');
+  testEl.className = 'polaroid';
+  testEl.style.visibility = 'hidden';
+  document.body.appendChild(testEl);
+  const POL_W = testEl.offsetWidth  || 140;
+  const POL_H = testEl.offsetHeight || 182;
+  document.body.removeChild(testEl);
+
+  /* Tile the whole screen into a grid of non-overlapping cells, rather
+     than randomly placing photos and rejecting collisions. This makes
+     overlap structurally impossible. The birthday text now has its own
+     glow, so photos are free to land underneath it — no exclusion zone
+     needed, which means every photo always gets a guaranteed, clean,
+     non-overlapping spot. */
+  function regionSlots(x0, y0, w, h) {
+    const cellW = POL_W + GAP, cellH = POL_H + GAP;
+    const cols = Math.floor((w + GAP) / cellW);
+    const rows = Math.floor((h + GAP) / cellH);
+    const slots = [];
+    if (cols < 1 || rows < 1) return slots;
+    const usedW = cols * POL_W + (cols - 1) * GAP;
+    const usedH = rows * POL_H + (rows - 1) * GAP;
+    const slackX = w - usedW;
+    const slackY = h - usedH;
+    const jitter = Math.min(GAP * 0.5, 8);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const baseX = x0 + slackX / 2 + c * cellW + (Math.random() - 0.5) * jitter;
+        const baseY = y0 + slackY / 2 + r * cellH + (Math.random() - 0.5) * jitter;
+        slots.push({ x: baseX, y: baseY });
+      }
+    }
+    return slots;
+  }
+
+  let slots = regionSlots(PAD, PAD + ROT_BUF, W - PAD * 2, H - PAD * 2 - ROT_BUF * 2);
+
+  /* Shuffle so which photo lands in which slot feels random */
+  for (let i = slots.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [slots[i], slots[j]] = [slots[j], slots[i]];
+  }
+
+  /* Only show as many photos as we have guaranteed non-overlapping
+     slots for — better a curated handful laid out cleanly than all
+     of them crammed in and overlapping. */
+  const activeSrcs = photoSrcs.slice(0, slots.length);
+  const activeCaptions = photoCaptions.slice(0, activeSrcs.length);
+
+  activeSrcs.forEach((src, idx) => {
+    const el = document.createElement('div');
+    el.className = 'polaroid';
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = activeCaptions[idx] || 'memory';
+    img.onerror = () => el.remove();
+
+    const cap = document.createElement('div');
+    cap.className = 'caption';
+    cap.textContent = activeCaptions[idx] || '';
+
+    el.appendChild(img);
+    el.appendChild(cap);
+    document.body.appendChild(el);
+
+    const slot   = slots[idx];
+    const rotate = (Math.random() - 0.5) * 20;
+    const delay  = 160 + idx * 60 + Math.random() * 120;
+
+    /* Place at origin (button center) to start */
+    el.style.left      = (originX - POL_W / 2) + 'px';
+    el.style.top       = (originY - POL_H / 2) + 'px';
+    el.style.opacity   = '0';
+    el.style.transform = 'scale(0.3) rotate(0deg)';
+    el.style.transition = 'none';
+
+    setTimeout(() => {
+      /* Animate using CSS transition — from origin to final slot */
+      const dur = 780 + Math.random() * 380;
+
+      /* Step 1: fly toward slot with slight overshoot arc */
+      el.style.transition = `left ${dur}ms cubic-bezier(0.22,1,0.36,1),
+                              top  ${dur}ms cubic-bezier(0.22,1,0.36,1),
+                              transform ${dur}ms cubic-bezier(0.22,1,0.36,1),
+                              opacity ${dur * 0.4}ms ease`;
+      el.style.opacity   = '1';
+      el.style.left      = slot.x + 'px';
+      el.style.top       = slot.y + 'px';
+      el.style.transform = `scale(1) rotate(${rotate}deg)`;
+
+      /* Step 2: after landing, enable hover interactions */
+      setTimeout(() => {
+        el.style.transition = 'box-shadow 0.3s ease, transform 0.3s ease';
+        el.style.pointerEvents = 'auto';
+        el.style.cursor = 'default';
+
+        el.addEventListener('mouseenter', () => {
+          el.style.boxShadow = '0 16px 44px rgba(120,70,90,0.30)';
+          el.style.transform = `scale(1.07) rotate(${rotate * 0.3}deg)`;
+          el.style.zIndex    = '50';
+        });
+        el.addEventListener('mouseleave', () => {
+          el.style.boxShadow = '';
+          el.style.transform = `scale(1) rotate(${rotate}deg)`;
+          el.style.zIndex    = '25';
+        });
+      }, dur + 60);
+    }, delay);
+  });
+}
+
+/* ============================================================
+   BALLOONS — drift upward after celebration starts
+============================================================ */
+function launchBalloons() {
+  const balloonColors = ['#F2B8C6','#F9C9A8','#D8C4E8','#E8899A','#f7d4df','#c8a8e0'];
+  const count = 9;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'balloon';
+      el.style.background = balloonColors[Math.floor(Math.random() * balloonColors.length)];
+      const startX = 4 + Math.random() * 92;
+      el.style.left = startX + 'vw';
+      document.getElementById('celebration').appendChild(el);
+
+      const sway = 20 + Math.random() * 40;
+      const dur  = 7000 + Math.random() * 4000;
+      const rotA = (Math.random() - 0.5) * 14;
+
+      el.animate([
+        { transform: `translate(0,0) rotate(0deg)`, opacity: 0 },
+        { transform: `translate(${sway * 0.4}px,-45vh) rotate(${rotA}deg)`, opacity: 1, offset: 0.12 },
+        { transform: `translate(${-sway}px,-85vh) rotate(${-rotA}deg)`, opacity: 1, offset: 0.7 },
+        { transform: `translate(${sway * 0.5}px,-128vh) rotate(${rotA * 0.6}deg)`, opacity: 0 }
+      ], { duration: dur, easing: 'ease-in-out' }).onfinish = () => el.remove();
+    }, i * 260 + Math.random() * 200);
+  }
+}
+
+/* ============================================================
+   AMBIENT TWINKLES — gentle, sparse stars before the click
+============================================================ */
+(function ambientTwinkle() {
+  function tick() {
+    if (!triggered) {
+      spawnSparkle(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+    }
+    setTimeout(tick, 900 + Math.random() * 900);
+  }
+  setTimeout(tick, 1200);
+})();
+
+let triggered = false;
+
+function triggerCelebration() {
+  if (triggered) return;
+  triggered = true;
+
+  const btn  = document.getElementById('click-btn');
+  const rect = btn.getBoundingClientRect();
+  const bx   = rect.left + rect.width  / 2;
+  const by   = rect.top  + rect.height / 2;
+
+  document.getElementById('intro').classList.add('hidden');
+
+  btn.animate([
+    { transform: 'scale(1)',   opacity: 1 },
+    { transform: 'scale(2.4)', opacity: 0 }
+  ], { duration: 480, easing: 'ease-out', fill: 'forwards' });
+
+  window.launchConfetti(bx, by);
+  launchBalloons();
+
+  spawnSparkleWave(bx, by, 26, 0);
+  spawnSparkleWave(bx, by, 22, 360);
+  spawnSparkleWave(window.innerWidth/2, window.innerHeight/2, 32, 720);
+
+  const msg   = document.getElementById('birthday-msg');
+  const title = document.getElementById('bday-title');
+  const sub   = document.getElementById('bday-sub');
+  const halo  = document.getElementById('glow-halo');
+  setTimeout(() => {
+    msg.classList.add('visible');
+    title.classList.add('pop');
+    halo.classList.add('visible');
+    setTimeout(() => sub.classList.add('visible'), 320);
+  }, 300);
+
+  launchPhotos(bx, by);
+
+  let sparkCount = 0;
+  const sparkInterval = setInterval(() => {
+    spawnSparkle(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+    if (++sparkCount > 55) clearInterval(sparkInterval);
+  }, 130);
+}
+</script>
+</body>
+</html>
