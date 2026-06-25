@@ -252,6 +252,8 @@
     bottom: 0; left: 0; right: 0;
     height: clamp(38px, 7vw, 60px);
     display: flex; align-items: center; justify-content: center;
+    padding: 0 16px;
+    text-align: center;
     font-family: 'Courier New', monospace;
     font-size: clamp(10px, 1.6vw, 14px);
     color: #b07080;
@@ -378,12 +380,30 @@ const photoSrcs = [
   "images/14.webp",
   "images/15.webp",
   "images/16.webp",
+  "images/17.webp",
+  "images/18.webp",
+  "images/19.webp",
+  "images/20.webp",
 ];
 
 /* Optional captions — leave '' for blank */
 const photoCaptions = [
-  "","","","","","","","","","",
-  "","","","","","","","","","",
+  "Looking Like A Literal Angel",
+  "#pleasebringthisback",
+  "Kissed Sun Cause You Shining More Than The Sun",
+  "No One Can Look Better In A Leather Top",
+  "Soooo Damn Beautiful",
+  "Iconic Picture",
+  "FBoy ahhh selfie",
+  "Who Looks This Good While They Brush",
+  "Stright Mogging A Flower",
+  "That Look And Those Eyes",
+  "Soooo Damn jfnjfjnd",
+  "Adorableeee",
+  "*sniff sniff* You Stink",
+  "#pleasebringthisbackpt2",
+  "Such A Beautiful Smile",
+  "Mrs.TooCool",
 ];
 
 /* ── Preload all images as soon as the page loads ── */
@@ -910,12 +930,7 @@ function launchPhotos(originX, originY) {
     img.alt   = caption || 'memory';
     img.onerror = () => el.remove();
 
-    const cap = document.createElement('div');
-    cap.className   = 'caption';
-    cap.textContent = caption;
-
     el.appendChild(img);
-    el.appendChild(cap);
     document.body.appendChild(el);
 
     const rotate = (Math.random() - 0.5) * 22;
